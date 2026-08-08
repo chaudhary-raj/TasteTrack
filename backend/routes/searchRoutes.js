@@ -8,6 +8,7 @@ router.get('/suggestions', searchController.getSuggestions);
 
 // Public Route: The heavy aggregation route for the final search results
 // GET /api/search?query=foodName
+
 router.get('/', searchController.searchFood);
 
 module.exports = router;

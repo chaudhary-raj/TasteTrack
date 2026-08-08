@@ -1,107 +1,168 @@
 const FoodItem = require('../models/FoodItem');
 
+// Escapes regex special characters so user input can't break $regex matching
+// or be used to construct unintended patterns.
+function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // GET: Main search with aggregation, averages, and sorting
 exports.searchFood = async (req, res) => {
     try {
-        const { query } = req.query;
+        const { q: query } = req.query;
 
-        if (!query) {
-            return res.status(400).json({ error: "Please provide a search term." });
+        if (!query || query.trim() === "") {
+            return res.status(400).json({
+                error: "Please provide a search term."
+            });
         }
 
-        // The MongoDB Aggregation Pipeline
+        const trimmedQuery = query.trim();
+
         const searchResults = await FoodItem.aggregate([
-            // Step 1: Find food items that match the search query (case-insensitive)
-            { 
-                $match: { name: { $regex: query, $options: 'i' } } 
+            // Find matching food items
+            {
+                $match: {
+                    name: {
+                        $regex: escapeRegex(trimmedQuery),
+                        $options: "i"
+                    }
+                }
             },
-            
-            // Step 2: Join the Reviews for these specific items
+            // Join ONLY approved reviews, with the reviewer's display name attached
+            // (respecting isAnonymous) — this is the moderation gate that was missing.
             {
                 $lookup: {
-                    from: 'reviews', 
-                    localField: '_id',
-                    foreignField: 'itemId',
-                    as: 'itemReviews'
+                    from: "reviews",
+                    let: { itemId: "$_id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $eq: ["$itemId", "$$itemId"] },
+                                status: "approved"
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: "users",
+                                localField: "userId",
+                                foreignField: "_id",
+                                as: "reviewer"
+                            }
+                        },
+                        {
+                            $unwind: { path: "$reviewer", preserveNullAndEmptyArrays: true }
+                        },
+                        {
+                            $project: {
+                                tasteRating: 1,
+                                priceRating: 1,
+                                cleanlinessRating: 1,
+                                comment: 1,
+                                createdAt: 1,
+                                reviewerName: {
+                                    $cond: [
+                                        "$isAnonymous",
+                                        "Anonymous",
+                                        { $ifNull: ["$reviewer.name", "Unknown user"] }
+                                    ]
+                                }
+                            }
+                        },
+                        { $sort: { createdAt: -1 } }
+                    ],
+                    as: "itemReviews"
                 }
             },
-
-            // Step 3: Calculate the averages for Taste, Price, and Cleanliness
+            // Calculate average ratings from the approved reviews only
             {
                 $addFields: {
-                    avgTaste: { $avg: "$itemReviews.tasteRating" },
-                    avgPrice: { $avg: "$itemReviews.priceRating" },
-                    avgCleanliness: { $avg: "$itemReviews.cleanlinessRating" }
-                }
-            },
-
-            // Step 4: Calculate the Overall Rating and Review Count
-            {
-                $addFields: {
-                    overallRating: { 
-                        $avg: ["$avgTaste", "$avgPrice", "$avgCleanliness"] 
-                    },
+                    avgTaste: { $ifNull: [{ $avg: "$itemReviews.tasteRating" }, 0] },
+                    avgPrice: { $ifNull: [{ $avg: "$itemReviews.priceRating" }, 0] },
+                    avgCleanliness: { $ifNull: [{ $avg: "$itemReviews.cleanlinessRating" }, 0] },
                     reviewCount: { $size: "$itemReviews" }
                 }
             },
-
-            // Step 5: Join the Restaurant details so the frontend has everything it needs
             {
-                $lookup: {
-                    from: 'restaurants',
-                    localField: 'restaurantId',
-                    foreignField: '_id',
-                    as: 'restaurantDetails'
+                $addFields: {
+                    overallRating: {
+                        $avg: ["$avgTaste", "$avgPrice", "$avgCleanliness"]
+                    }
                 }
             },
-            
-            // Unwind the restaurant array so it's a single object instead of an array of one
-            { $unwind: "$restaurantDetails" },
-
-            // Step 6: Sort the final list by overallRating in descending order (-1)
-            { $sort: { overallRating: -1 } },
-
-            // Step 7: Clean up the data sent to the frontend (hide the raw reviews array)
+            // Join restaurant details
+            {
+                $lookup: {
+                    from: "restaurants",
+                    localField: "restaurantId",
+                    foreignField: "_id",
+                    as: "restaurantDetails"
+                }
+            },
+            {
+                $unwind: { path: "$restaurantDetails", preserveNullAndEmptyArrays: true }
+            },
+            // Sort by overall rating
+            {
+                $sort: { overallRating: -1 }
+            },
+            // Shape the final response — includes the full approved review list now
             {
                 $project: {
-                    itemReviews: 0 
+                    name: 1,
+                    description: 1,
+                    price: 1,
+                    restaurantId: 1,
+                    "restaurantDetails._id": 1,
+                    "restaurantDetails.name": 1,
+                    "restaurantDetails.address": 1,
+                    avgTaste: 1,
+                    avgPrice: 1,
+                    avgCleanliness: 1,
+                    overallRating: 1,
+                    reviewCount: 1,
+                    reviews: "$itemReviews"
                 }
             }
         ]);
 
-        res.status(200).json(searchResults);
+        return res.status(200).json(searchResults);
 
     } catch (error) {
         console.error("Search Error:", error);
-        res.status(500).json({ error: "Server error while searching." });
+        return res.status(500).json({
+            error: "Server error while searching."
+        });
     }
 };
 
-// GET: Lightweight search for 500ms auto-suggestions
+// GET: Suggestions for autocomplete
 exports.getSuggestions = async (req, res) => {
     try {
-        const { query } = req.query;
+        const { q: query } = req.query;
 
-        // If the user clears the search bar, return an empty array
-        if (!query) {
+        if (!query || query.trim() === "") {
             return res.status(200).json([]);
         }
 
-        // Lightweight search: Find items matching the query, but ONLY return the 'name' field[cite: 323].
-        // Limit the results to 5 so it is lightning fast[cite: 323].
-        const matches = await FoodItem.find({ 
-            name: { $regex: query, $options: 'i' } 
+        const matches = await FoodItem.find({
+            name: {
+                $regex: escapeRegex(query.trim()),
+                $options: "i"
+            }
         })
-        .select('name')
-        .limit(5);
+            .select("name -_id")
+            .limit(5);
 
-        // Filter out duplicate names (e.g., if 3 restaurants have "Pizza", just suggest "Pizza" once)
         const uniqueSuggestions = [...new Set(matches.map(item => item.name))];
 
-        res.status(200).json(uniqueSuggestions);
+        return res.status(200).json(uniqueSuggestions);
 
     } catch (error) {
         console.error("Suggestion Error:", error);
-        res.status(500).json({ error: "Server error fetching suggestions." });
+
+        return res.status(500).json({
+            error: "Server error fetching suggestions."
+        });
     }
 };

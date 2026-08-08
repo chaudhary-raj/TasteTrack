@@ -35,7 +35,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/food-items', foodItemRoutes);
 app.use('/api/reviews', reviewRoutes);
-app.use('/api/search', searchRoutes);
+app.use('/api/results', searchRoutes);
 
 // A simple test route
 app.get('/', (req, res) => {

@@ -1,24 +1,30 @@
 const mongoose = require('mongoose');
 
 const reviewSchema = new mongoose.Schema({
-    itemId: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'FoodItem', 
-        required: true 
+    itemId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'FoodItem',
+        required: true
     },
-    userId: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'User', 
-        required: true 
+    restaurantId: { 
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Restaurant',
+        required: true
+    },
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
     },
     tasteRating: { type: Number, required: true, min: 1, max: 5 },
     priceRating: { type: Number, required: true, min: 1, max: 5 },
     cleanlinessRating: { type: Number, required: true, min: 1, max: 5 },
     comment: { type: String },
     isAnonymous: { type: Boolean, default: false },
-    isApproved: { 
-        type: Boolean, 
-        default: false // Admins will need to switch this to true for it to display
+    status: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected'],
+        default: 'pending'
     }
 }, { timestamps: true });
 

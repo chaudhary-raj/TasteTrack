@@ -76,3 +76,77 @@ exports.getItemReviews = async (req, res) => {
         res.status(500).json({ error: "Server error while fetching reviews." });
     }
 };
+exports.getUserAllReview = async (req, res) => {
+    try {
+        const userId = req.user.userId; // Provided by your verifyToken middleware
+
+        // 1. Use .find() for Mongoose
+        // 2. Use .populate() to join the FoodItem data
+        const reviews = await Review.find({ userId: userId })
+            .populate({
+                path: 'itemId',
+                select: 'name restaurantId', // Get food name and the restaurant reference
+                populate: {
+                    path: 'restaurantId', // The field inside FoodItem that points to Restaurant
+                    model: 'Restaurant',
+                    select: 'name' // The field inside the Restaurant model you want to fetch
+                }
+            })
+            .sort({ createdAt: -1 }); // Optional: sorts by newest first
+
+        // Mongoose .find() returns an array. An empty array is still "truthy", 
+        // so we check the length to see if they have no reviews.
+        if (!reviews || reviews.length === 0) {
+            return res.status(200).json({ 
+                hasReviews: false, 
+                message: "You haven't written any reviews yet.",
+                reviews: [] 
+            });
+        }
+
+        // Send back the array of populated reviews
+        res.status(200).json({ 
+            hasReviews: true, 
+            reviews 
+        });
+
+    } catch (error) {
+        console.error("Error fetching user's reviews:", error);
+        res.status(500).json({ error: "Server error while fetching your reviews." });
+    }
+};
+
+// 1. Get all unapproved reviews
+// 1. Fetch reviews based on the tab (status)
+exports.getReviewsByAdmin = async (req, res) => {
+  try {
+    const { status } = req.query; // Looks at the URL: ?status=pending
+    // console.log(status);
+    const reviews = await Review.find({ status: status || 'pending' })
+      .populate('itemId', 'name')
+      .populate('restaurantId', 'name')
+      .populate('userId', 'name');
+    res.status(200).json(reviews);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// 2. Approve -> Changes status to 'approved'
+exports.approveReview = async (req, res) => {
+  await Review.findByIdAndUpdate(req.params.id, { status: 'approved' });
+  res.status(200).json({ message: 'Approved' });
+};
+
+// 3. Reject -> Changes status to 'rejected' (instead of deleting)
+exports.rejectReview = async (req, res) => {
+  await Review.findByIdAndUpdate(req.params.id, { status: 'rejected' });
+  res.status(200).json({ message: 'Rejected' });
+};
+
+// 4. Delete -> Actually removes it from DB forever
+exports.deleteReview = async (req, res) => {
+  await Review.findByIdAndDelete(req.params.id);
+  res.status(200).json({ message: 'Deleted' });
+};

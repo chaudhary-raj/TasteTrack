@@ -5,12 +5,13 @@ exports.addRestaurant = async (req, res) => {
     try {
         // 1. Check if the user making the request is an admin
         // (req.user comes from your verifyToken middleware!)
+        // console.log(req.user);
         if (req.user.role !== 'admin') {
             return res.status(403).json({ error: "Access denied. Only admins can add restaurants." });
         }
 
         const { name, address, contactInfo, imageUrl } = req.body;
-
+        
         // 2. Create and save the new restaurant
         const newRestaurant = new Restaurant({
             name,

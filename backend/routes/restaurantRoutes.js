@@ -2,10 +2,11 @@
 const express = require('express');
 const router = express.Router();
 const restaurantController = require('../controllers/restaurantController');
-const verifyToken = require('../middleware/authMiddleware'); // Import your middleware!
+const verifyToken = require('../middleware/authMiddleware');
+const isAdmin = require('../middleware/adminMiddleware'); // 1. Import the new admin bouncer
 
-// Protected Route: Only logged-in users with valid tokens get past 'verifyToken'
-router.post('/add', verifyToken, restaurantController.addRestaurant);
+// Protected Route: Must be logged in AND be an admin
+router.post('/', verifyToken, isAdmin, restaurantController.addRestaurant);
 
 // Public Route: Anyone can view the list of restaurants
 router.get('/', restaurantController.getAllRestaurants);

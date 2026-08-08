@@ -19,7 +19,7 @@ const verifyToken = (req, res, next) => {
 
         // 4. Attach the decoded payload (userId and role) to the request object
         req.user = decoded;
-
+        
         // 5. Pass control to the next function (the actual route controller)
         next();
 

@@ -1,4 +1,5 @@
 const FoodItem = require('../models/FoodItem');
+const Restaurant = require('../models/Restaurant');
 
 // POST: Add a new food item (Admin only)
 exports.addFoodItem = async (req, res) => {
@@ -40,8 +41,14 @@ exports.getFoodItemsByRestaurant = async (req, res) => {
         
         // Find all food items linked to this specific restaurant
         const foodItems = await FoodItem.find({ restaurantId });
-        
-        res.status(200).json(foodItems);
+        const myRestaurant = await Restaurant.findById(restaurantId);
+        // console.log(myRestaurant);
+       
+        res.status(200).json({
+            success: true,
+            restaurant : myRestaurant,
+            foodItems: foodItems,
+        });
     } catch (error) {
         console.error("Error fetching food items:", error);
         res.status(500).json({ error: "Server error while fetching food items." });
