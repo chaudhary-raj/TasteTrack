@@ -79,7 +79,7 @@ const Footer = () => {
       <div className="ft-inner">
         <div>
           <Link to="/" className="ft-brand">
-            <FaUtensils className="ft-brand-icon" /> NITKKR Craves
+            <FaUtensils className="ft-brand-icon" /> Taste Track
           </Link>
           <p className="ft-tagline">
             Honest reviews of every dish on campus, written by NIT Kurukshetra students, for NIT Kurukshetra students.
@@ -104,7 +104,7 @@ const Footer = () => {
         </div>
       </div>
 
-      <div className="ft-bottom">© {year} NITKKR Craves — Built for NIT Kurukshetra students</div>
+      <div className="ft-bottom">© {year} Taste Track — Built for NIT Kurukshetra students</div>
     </footer>
   );
 };

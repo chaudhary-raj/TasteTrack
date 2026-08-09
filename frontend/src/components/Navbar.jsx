@@ -177,7 +177,7 @@ const Navbar = () => {
 
       <div className="nb-bar">
         <Link to="/" className="nb-logo" onClick={closeMenu}>
-          <FaUtensils className="nb-logo-icon" /> NITKKR Craves
+          <FaUtensils className="nb-logo-icon" /> Taste Track
         </Link>
 
         <button

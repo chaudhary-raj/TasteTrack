@@ -54,7 +54,7 @@ const STYLES = `
 .res-header { margin-bottom: 28px; }
 .res-header h1 {
   font-family: var(--font-display); font-weight: 400; text-transform: uppercase;
-  font-size: clamp(20px, 4vw, 28px); letter-spacing: 0.01em; margin: 0 0 6px;
+  font-size: clamp(20px, 4vw, 28px); letter-spacing: 0.01em; margin: 0 0 6px;color: #000;
 }
 .res-kicker { font-family: var(--font-mono); font-size: 12px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.08em; margin: 0; }
 .res-error {
