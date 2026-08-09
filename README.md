@@ -1,4 +1,4 @@
-# NITKKR Craves 🍽️
+# TASTE TRACK 🍽️
 
 A campus food review platform built exclusively for NIT Kurukshetra students. Search dishes across campus restaurants, read moderated reviews, rate what you eat on taste/price/cleanliness, and — for admins — manage restaurants, menus, and the review moderation queue.
 
