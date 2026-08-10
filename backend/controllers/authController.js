@@ -8,12 +8,17 @@ const config = require('../config');
 const { generateOtp } = require('../utils/otpGenerator');
 
 // Set up Nodemailer transporter using your .env credentials
+const nodemailer = require('nodemailer');
+
 const transporter = nodemailer.createTransport({
-    service: 'gmail', 
-    auth: {
-        user: config.emailUser,
-        pass: config.emailPass
-    }
+  host: 'smtp.gmail.com',
+  port: 587,             // Switch from 465 to 587
+  secure: false,        // Set to false for port 587 (uses STARTTLS)
+  auth: {
+    user: config.emailUser,
+    pass: config.emailPass, // Must be a 16-character Google App Password
+  },
+  family: 4,             // Force IPv4 to bypass Render's IPv6 connection block
 });
 
 exports.register = async (req, res) => {
