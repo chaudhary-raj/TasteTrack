@@ -13,8 +13,15 @@ const searchRoutes = require('./routes/searchRoutes');
 
 const app = express();
 
-// Middleware
-app.use(cors());
+const allowedOrigins = [
+  'http://localhost:5173', // Local Vite dev server
+  process.env.CLIENT_URL   // Your Vercel frontend URL
+].filter(Boolean);
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
 app.use(express.json()); // Allows us to parse JSON bodies from frontend requests
 
 // Database Connection
