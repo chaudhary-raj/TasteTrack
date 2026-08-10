@@ -8,8 +8,6 @@ const config = require('../config');
 const { generateOtp } = require('../utils/otpGenerator');
 
 // Set up Nodemailer transporter using your .env credentials
-const nodemailer = require('nodemailer');
-
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 587,             // Switch from 465 to 587
